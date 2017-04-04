@@ -1,6 +1,7 @@
 package implicitconversions
 
 object UserDatabase {
+  // start snippet Setting
   case class User(id: Int, username: String)
 
   type Json = Map[String, String]
@@ -25,6 +26,7 @@ object UserDatabase {
   object UserDBSql extends DummyUserDB("SQL")
 
   object UserDBMongo extends DummyUserDB("MongoDB")
+  // end snippet Setting
 }
 import UserDatabase._
 
