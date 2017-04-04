@@ -50,6 +50,10 @@ main = hakyll $ do
     route idRoute
     compile copyFileCompiler
 
+  create ["CNAME"] $ do
+    route idRoute
+    compile copyFileCompiler
+
 --------------------------------------------------------------------------------
 postCtx :: Context String
 postCtx = defaultContext
