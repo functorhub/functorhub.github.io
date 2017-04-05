@@ -5,7 +5,9 @@ object UserDatabase {
   type Json = Map[String, String]
   type ApiHandler = PartialFunction[String, Json]
 
-  def serve(h: ApiHandler): Unit = ???
+  val apiPath = "/api/user"
+
+  def serve(h: ApiHandler): Unit = println(h(s"$apiPath/42"))
 
   case class User(id: Int, username: String)
 
@@ -21,7 +23,7 @@ object UserDatabase {
       persistence = persistence.updated(u.id, u)
       println(s"Wrote to $dbName: $u")
     }
-    def read (id: Int): User = persistence(id)
+    def read(id: Int): User = persistence(id)
   }
   object UserDBSql extends DummyUserDB("SQL")
   // end snippet Setting
@@ -32,42 +34,49 @@ object UserDatabase {
 }
 import UserDatabase._
 
-object Implicits {
-  // start snippet userToJson
-  implicit def userToJson(u: User): Json = Map("id" -> u.id.toString, "username" -> u.username)
-  // end snippet userToJson
-}
-import Implicits._
 
 object E1_1_Force_Conversion extends App {
   // start snippet E1_1_Force_Conversion
+  def userToJson(u: User): Json =
+    Map("id" -> u.id.toString, "username" -> u.username)
+
   val u = User(42, "Bob")
   UserDBSql.write(u)
 
-  val usersApiPath = """/api/user/(\d+)""".r
+  val usersApiPath = s"$apiPath/(\\d+)".r
   val handler: ApiHandler = {
     case usersApiPath(id) =>
       val user = UserDBSql.read(id.toInt)
-      Map( "id" -> user.id.toString, "username" -> user.username )
+      userToJson(user)
   }
-  println(handler("/api/user/42"))
+  serve(handler)
   // end snippet E1_1_Force_Conversion
 }
+
+object Implicits {
+  // start snippet userToJson
+  implicit def userToJson(u: User): Json =
+    Map("id" -> u.id.toString, "username" -> u.username)
+  // end snippet userToJson
+}
+import Implicits._
 
 object E1_2_Conversion extends App {
   val u = User(42, "Bob")
   UserDBSql.write(u)
   
-  val usersApiPath = """/api/user/(\d+)""".r
+  val usersApiPath = s"$apiPath/(\\d+)".r
   // start snippet E1_2_Conversion
   val handler: ApiHandler = {
-    case usersApiPath(id) => UserDBSql.read(id.toInt)
+    case usersApiPath(id) =>
+      val user = UserDBSql.read(id.toInt)
+      user
   }
   // end snippet E1_2_Conversion
-  println(handler("/api/user/42"))
+  serve(handler)
 }
 
-object E2_Wrapper {
+object E2_Wrapper extends App {
   // start snippet E2_Wrapper_conversions
   class RichUser(u: User) {
     def write() = UserDBSql.write(u)
@@ -80,18 +89,16 @@ object E2_Wrapper {
   implicit def augmentInt(x: Int): RichId = new RichId(x)
   // end snippet E2_Wrapper_conversions
 
-  def main(args: Array[String]): Unit = {
-    // start snippet E2_Wrapper_examples
-    val u = User(42, "Bob")
-    u.write()
-    
-    val usersApiPath = """/api/user/(\d+)""".r
-    val handler: ApiHandler = {
-      case usersApiPath(id) => id.toInt.readUser()
-    }
-    println(handler("/api/user/42"))
-    // end snippet E2_Wrapper_examples
+  // start snippet E2_Wrapper_examples
+  val u = User(42, "Bob")
+  u.write()
+  
+  val usersApiPath = s"$apiPath/(\\d+)".r
+  val handler: ApiHandler = {
+    case usersApiPath(id) => id.toInt.readUser()
   }
+  serve(handler)
+  // end snippet E2_Wrapper_examples
 }
 
 object E3_1_Force_Context {
@@ -114,11 +121,11 @@ object E3_1_Force_Context {
     val u = User(42, "Bob")
     u.write()
     
-    val usersApiPath = """/api/user/(\d+)""".r
+    val usersApiPath = s"$apiPath/(\\d+)".r
     val handler: ApiHandler = {
       case usersApiPath(id) => id.toInt.readUser()
     }
-    println(handler("/api/user/42"))
+    serve(handler)
     // end snippet E3_1_Force_Context_example
   }
 }
@@ -143,11 +150,11 @@ object E3_Context {
     val u = User(42, "Bob")
     u.write()
     
-    val usersApiPath = """/api/user/(\d+)""".r
+    val usersApiPath = s"$apiPath/(\\d+)".r
     val handler: ApiHandler = {
       case usersApiPath(id) => id.toInt.readUser()
     }
-    println(handler("/api/user/42"))
+    serve(handler)
     // end snippet E3_Context_example
   }
 }
@@ -169,10 +176,10 @@ object E4_WrapperShorthand {
     val u = User(42, "Bob")
     u.write()
     
-    val usersApiPath = """/api/user/(\d+)""".r
+    val usersApiPath = s"$apiPath/(\\d+)".r
     val handler: ApiHandler = {
       case usersApiPath(id) => id.toInt.readUser()
     }
-    println(handler("/api/user/42"))
+    serve(handler)
   }
 }
